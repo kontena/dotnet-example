@@ -1,0 +1,36 @@
+stack: dotnet-example
+version: 0.3.0
+services:
+  internet_lb:
+    image: kontena/lb:latest
+    ports:
+      - 80:80
+  sqlserver:
+    image: microsoft/mssql-server-linux
+    stateful: true
+    ports:
+      - 1433:1433
+    environment:
+      ACCEPT_EULA: Y
+    secrets:
+      - secret: SQLSERVER_SA_PASSWORD
+        name: SA_PASSWORD
+        type: env
+    volumes:
+      - /var/opt/mssql
+  api:
+    image: registry.test.kontena.local/dotnet-example:latest
+    depends_on:
+      - sqlserver
+    environment:
+      SQLSERVER_HOST: sqlserver
+      KONTENA_LB_MODE: http
+      KONTENA_LB_BALANCE: roundrobin
+      KONTENA_LB_INTERNAL_PORT: 5000
+      KONTENA_LB_VIRTUAL_PATH: /
+    secrets:
+      - secret: SQLSERVER_SA_PASSWORD
+        name: SQLSERVER_SA_PASSWORD
+        type: env
+    links:
+      - internet_lb
